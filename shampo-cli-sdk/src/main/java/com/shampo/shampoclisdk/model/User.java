@@ -1,4 +1,4 @@
-package com.shampo.shampo_interface.model;
+package com.shampo.shampoclisdk.model;
 
 import lombok.Data;
 

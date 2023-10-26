@@ -1,9 +1,7 @@
-package com.shampo.shampo_interface.utils;
+package com.shampo.shampoclisdk.utils;
 
 import cn.hutool.crypto.digest.DigestAlgorithm;
 import cn.hutool.crypto.digest.Digester;
-
-import java.util.Map;
 
 /**
  * ClassName:SignUtils

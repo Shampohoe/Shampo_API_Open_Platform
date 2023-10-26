@@ -1,21 +1,13 @@
-package com.shampo.shampo_interface.client;
+package com.shampo.shampoclisdk.client;
 
 import cn.hutool.core.util.RandomUtil;
-import cn.hutool.crypto.digest.DigestAlgorithm;
-import cn.hutool.crypto.digest.Digester;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
-import com.shampo.shampo_interface.model.User;
-import com.shampo.shampo_interface.utils.SignUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import com.shampo.shampoclisdk.model.User;
+import com.shampo.shampoclisdk.utils.SignUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +40,7 @@ public class ShampoClient {
         return result;
     }
 
-    public String getNameByPost(@RequestParam String name) {
+    public String getNameByPost(String name) {
         //可以单独传入http参数，这样参数会自动做URL编码，拼接在URL中
         HashMap<String, Object> paramMap = new HashMap<>();
         paramMap.put("name", name);
@@ -71,7 +63,7 @@ public class ShampoClient {
 
     }
 
-    public String getUsernameByPost(@RequestBody User user){
+    public String getUsernameByPost(User user){
         String json = JSONUtil.toJsonStr(user);
         HttpResponse httpResponse = HttpRequest.post("http://localhost:8123/api/name/user")
                 .addHeaders(getHeaderMap(json))

@@ -1,7 +1,8 @@
 package com.shampo.shampo_interface.controller;
 
-import com.shampo.shampo_interface.model.User;
-import com.shampo.shampo_interface.utils.SignUtils;
+
+import com.shampo.shampoclisdk.model.User;
+import com.shampo.shampoclisdk.utils.SignUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -46,7 +47,7 @@ public class NameController {
             throw new RuntimeException("无权限");
         }*/
         //实际情况是从数据库中查出secretKey
-        String serverSign=SignUtils.genSign(body,"abcdefg");
+        String serverSign= SignUtils.genSign(body,"abcdefg");
         if(!sign.equals(serverSign)){
             throw new RuntimeException("无权限");
         }
