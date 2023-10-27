@@ -2,6 +2,7 @@ package com.shampo.project.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.shampo.project.model.dto.user.UserUpdateRequest;
 import com.shampo.project.model.entity.User;
 
 import javax.servlet.http.HttpServletRequest;
@@ -56,4 +57,6 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean userLogout(HttpServletRequest request);
+
+    boolean userUpdate(String userAccount,String userPassword, UserUpdateRequest userUpdateRequest);
 }

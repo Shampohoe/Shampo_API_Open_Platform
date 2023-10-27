@@ -88,3 +88,7 @@ cos:
     secretKey: xxx
     region: xxx
     bucket: xxx
+shampo:
+  client:
+    access-key: shampo
+    secret-key: abcdefg

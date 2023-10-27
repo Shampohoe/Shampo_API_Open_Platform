@@ -18,6 +18,7 @@ create table if not exists user
     mpOpenId     varchar(256)                           null comment '公众号openId',
     userName     varchar(256)                           null comment '用户昵称',
     userAvatar   varchar(1024)                          null comment '用户头像',
+    gender       tinyint                                null comment '性别',
     userProfile  varchar(512)                           null comment '用户简介',
     userRole     varchar(256) default 'user'            not null comment '用户角色：user/admin/ban',
     `accessKey` varchar(512) not null comment 'accessKey',

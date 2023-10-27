@@ -2,20 +2,21 @@ package com.shampo.project.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.gson.Gson;
 import com.shampo.project.annotation.AuthCheck;
-import com.shampo.project.common.BaseResponse;
-import com.shampo.project.common.DeleteRequest;
-import com.shampo.project.common.ErrorCode;
-import com.shampo.project.common.ResultUtils;
+import com.shampo.project.common.*;
 import com.shampo.project.constant.CommonConstant;
 import com.shampo.project.exception.BusinessException;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
+import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoInvokeRequest;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.shampo.project.model.entity.InterfaceInfo;
 import com.shampo.project.model.entity.User;
+import com.shampo.project.model.enums.InterfaceInfoStatusEnum;
 import com.shampo.project.service.InterfaceInfoService;
 import com.shampo.project.service.UserService;
+import com.shampo.shampoclisdk.client.ShampoClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -40,6 +41,8 @@ public class InterfaceInfoController {
 
     @Resource
     private UserService userService;
+    @Resource
+    ShampoClient shampoClient;
 
     // region 增删改查
 
@@ -195,5 +198,107 @@ public class InterfaceInfoController {
     }
 
     // endregion
+
+    /**
+     * 发布接口
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/online")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> onlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 判断是否存在
+        long id=idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        //判断是否可以调用
+        com.shampo.shampoclisdk.model.User user=new com.shampo.shampoclisdk.model.User();
+        user.setUsername("test");
+        String result = shampoClient.getUsernameByPost(user);
+        if(StringUtils.isBlank(result)){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"接口验证失败");
+        }
+
+        // 仅本人或管理员可修改
+        InterfaceInfo interfaceInfo=new InterfaceInfo();
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.ONLINE.getValue());
+        boolean result1 = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result1);
+    }
+
+    /**
+     * 下线
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/offline")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> offlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 判断是否存在
+        long id=idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+
+        // 仅本人或管理员可修改
+        InterfaceInfo interfaceInfo=new InterfaceInfo();
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.OFFLINE.getValue());
+        boolean result1 = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result1);
+    }
+
+    /**
+     * 测试调用
+     * @param interfaceInfoInvokeRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/invoke")
+    public BaseResponse<Object> invokeInterfaceInfo(@RequestBody InterfaceInfoInvokeRequest interfaceInfoInvokeRequest,
+                                                      HttpServletRequest request) {
+        if (interfaceInfoInvokeRequest == null || interfaceInfoInvokeRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 判断是否存在
+        long id=interfaceInfoInvokeRequest.getId();
+        String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if(oldInterfaceInfo.getStatus()==InterfaceInfoStatusEnum.OFFLINE.getValue()){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"接口已关闭");
+        }
+        User loginUser=userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+        ShampoClient tempClient=new ShampoClient(accessKey,secretKey);
+        Gson gson=new Gson();
+        com.shampo.shampoclisdk.model.User user = gson.fromJson(userRequestParams, com.shampo.shampoclisdk.model.User.class);
+        //后期要修改
+        String usernameByPost = tempClient.getUsernameByPost(user);
+
+        return ResultUtils.success(usernameByPost);
+    }
 
 }

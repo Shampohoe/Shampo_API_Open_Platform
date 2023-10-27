@@ -159,9 +159,11 @@ public class UserController {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
+
+        String userAccount = userUpdateRequest.getUserAccount();
+        String userPassword = userUpdateRequest.getUserPassword();
+
+        boolean result = userService.userUpdate(userAccount,userPassword,userUpdateRequest);
         return ResultUtils.success(result);
     }
 
