@@ -143,6 +143,33 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return result;
     }
 
+    /*
+    * 判断accessKey是否存在数据库中
+    */
+   /* public boolean ifExistAccessKey(String accessKey){
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("accessKey").eq("accessKey", accessKey);
+        User user = userMapper.selectOne(queryWrapper);
+        String accessKey1 = user.getAccessKey();
+        if(accessKey==accessKey1){
+            return true;
+        }else{
+            log.info("accessKey错误或账户不存在");
+            return false;
+        }
+    }*/
+
+    /*
+     * 获取对应的secretKey
+     */
+    /*public String getSecretKey(String accessKey){
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("secretKey").eq("accessKey", accessKey);
+        User user = userMapper.selectOne(queryWrapper);
+        String secretKey = user.getSecretKey();
+        return secretKey;
+    }*/
+
     /**
      * 获取当前登录用户
      *

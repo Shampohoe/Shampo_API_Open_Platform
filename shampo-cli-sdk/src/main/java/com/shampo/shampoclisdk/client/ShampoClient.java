@@ -70,6 +70,7 @@ public class ShampoClient {
                 .body(json)
                 .execute();
         System.out.println(httpResponse.getStatus());
+        System.out.println("--------------");
         String result=httpResponse.body();
         return result;
     }

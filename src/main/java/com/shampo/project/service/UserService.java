@@ -59,4 +59,7 @@ public interface UserService extends IService<User> {
     boolean userLogout(HttpServletRequest request);
 
     boolean userUpdate(String userAccount,String userPassword, UserUpdateRequest userUpdateRequest);
+
+    //boolean ifExistAccessKey(String accessKey);
+    //String getSecretKey(String accessKey);
 }

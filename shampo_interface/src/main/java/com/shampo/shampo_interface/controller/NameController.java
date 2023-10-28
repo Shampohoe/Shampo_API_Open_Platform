@@ -2,7 +2,6 @@ package com.shampo.shampo_interface.controller;
 
 
 import com.shampo.shampoclisdk.model.User;
-import com.shampo.shampoclisdk.utils.SignUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -15,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 @RestController
 @RequestMapping("/name")
 public class NameController {
+
 
     @GetMapping("/")
     public String getNameByGet(String name) {
@@ -30,15 +30,16 @@ public class NameController {
     @PostMapping("/user")
     public String getUsernameByPost(@RequestBody User user, HttpServletRequest request){
         String accessKey=request.getHeader("accessKey");
+
         String nonce=request.getHeader("nonce");
         String timeStamp=request.getHeader("timeStamp");
         String sign=request.getHeader("sign");
         String body=request.getHeader("body");
 
         //实际去数据库查有没有对应的accessKey
-        if(!accessKey.equals("shampo")){
+        /*if(!ifExist){
             throw new RuntimeException("无权限");
-        }
+        }*/
         if(Long.parseLong(nonce)>10000){
             throw new RuntimeException("无权限");
         }
@@ -47,10 +48,11 @@ public class NameController {
             throw new RuntimeException("无权限");
         }*/
         //实际情况是从数据库中查出secretKey
-        String serverSign= SignUtils.genSign(body,"abcdefg");
+
+        /*String serverSign= SignUtils.genSign(body,secretKey);
         if(!sign.equals(serverSign)){
             throw new RuntimeException("无权限");
-        }
+        }*/
         return "POST 用户名是"+user.getUsername();
     }
 

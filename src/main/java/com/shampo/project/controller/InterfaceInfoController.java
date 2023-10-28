@@ -296,6 +296,7 @@ public class InterfaceInfoController {
         Gson gson=new Gson();
         com.shampo.shampoclisdk.model.User user = gson.fromJson(userRequestParams, com.shampo.shampoclisdk.model.User.class);
         //后期要修改
+        log.info("i am here");
         String usernameByPost = tempClient.getUsernameByPost(user);
 
         return ResultUtils.success(usernameByPost);
