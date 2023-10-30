@@ -37,3 +37,17 @@ insert into shampohoe_api.`interface_info` (`name`, `url`, `requestHeader`, `res
 insert into shampohoe_api.`interface_info` (`name`, `url`, `requestHeader`, `responseHeader`, `status`, `method`, `userId`) values ('薛瑞霖', 'www.shera-heathcote.io', '尹子默', '尹嘉懿', 0, '张雪松', 153585549);
 insert into shampohoe_api.`interface_info` (`name`, `url`, `requestHeader`, `responseHeader`, `status`, `method`, `userId`) values ('彭金鑫', 'www.rolland-murazik.biz', '赖修洁', '邹立轩', 0, '萧哲瀚', 210149251);
 insert into shampohoe_api.`interface_info` (`name`, `url`, `requestHeader`, `responseHeader`, `status`, `method`, `userId`) values ('魏鹭洋', 'www.orval-homenick.info', '龚雨泽', '钟靖琪', 0, '洪聪健', 81842291);
+
+-- 用户调用接口关系表
+create table if not exists shampohoe_api.`user_interface_info`
+(
+    `id` bigint not null auto_increment comment '主键' primary key,
+    `userId` bigint not null comment '调用用户 id',
+    `interfaceInfoId` bigint not null comment '接口 id',
+    `totalNum` int default 0 not null comment '总调用次数',
+    `leftNum` int default 0 not null comment '剩余调用次数',
+    `status` int default 0 not null comment '0-正常，1-禁用',
+    `createTime` datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    `updateTime` datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    `isDelete` tinyint default 0 not null comment '是否删除(0-未删, 1-已删)'
+) comment '用户调用接口关系';

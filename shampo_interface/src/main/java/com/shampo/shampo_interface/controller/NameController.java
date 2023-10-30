@@ -12,14 +12,16 @@ import javax.servlet.http.HttpServletRequest;
  * @author yupi
  */
 @RestController
-@RequestMapping("/name")
+@RequestMapping("/")
 public class NameController {
 
 
-    @GetMapping("/")
-    public String getNameByGet(String name) {
-
-        return "GET 你的名字是" + name;
+    @GetMapping("/name")
+    public String getNameByGet(String username,HttpServletRequest request) {
+        System.out.println(request.getHeader("shampo"));
+        System.out.println(request.getParameter("name"));
+        System.out.println(request.getParameter("username"));
+        return "GET 你的名字是" + username;
     }
 
     @PostMapping("/")
@@ -53,7 +55,10 @@ public class NameController {
         if(!sign.equals(serverSign)){
             throw new RuntimeException("无权限");
         }*/
-        return "POST 用户名是"+user.getUsername();
+        String result= "POST 用户名是"+user.getUsername();
+
+
+        return result;
     }
 
 }
