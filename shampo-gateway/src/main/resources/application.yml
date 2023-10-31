@@ -6,26 +6,30 @@ spring:
       default-filters:
         - AddResponseHeader=source, shampo
       routes:
+        - id: api_route
+          uri: http://localhost:8123
+          predicates:
+          - Path=/api/**
   #      - id: path_route
   #        uri: https://yupi.icu
   #        predicates:
   #          - Path=/api/**
-        - id: add_request_header_route
-          uri: http://localhost:8123
-          predicates:
-            - Path=/api/**
-          filters:
-            - AddRequestHeader=shampo, flag
-            - AddRequestParameter=name, dog
-            - AddRequestParameter=username, pig
-            - name: CircuitBreaker
-              args:
-                name: myCircuitBreaker
-                fallbackUri: forward:/fallback
-        - id: shampo-fallback
-          uri: https://yupi.icu
-          predicates:
-            - Path=/fallback
+#        - id: add_request_header_route
+#          uri: http://localhost:8123
+#          predicates:
+#            - Path=/api/**
+#          filters:
+#            - AddRequestHeader=shampo, flag
+#            - AddRequestParameter=name, dog
+#            - AddRequestParameter=username, pig
+#            - name: CircuitBreaker
+#              args:
+#                name: myCircuitBreaker
+#                fallbackUri: forward:/fallback
+#        - id: shampo-fallback
+#          uri: https://yupi.icu
+#          predicates:
+#            - Path=/fallback
 
 logging:
   level:

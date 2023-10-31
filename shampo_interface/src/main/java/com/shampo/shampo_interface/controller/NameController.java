@@ -2,6 +2,7 @@ package com.shampo.shampo_interface.controller;
 
 
 import com.shampo.shampoclisdk.model.User;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -12,11 +13,12 @@ import javax.servlet.http.HttpServletRequest;
  * @author yupi
  */
 @RestController
-@RequestMapping("/")
+@RequestMapping("/name")
+@Slf4j
 public class NameController {
 
 
-    @GetMapping("/name")
+    @GetMapping("/get")
     public String getNameByGet(String username,HttpServletRequest request) {
         System.out.println(request.getHeader("shampo"));
         System.out.println(request.getParameter("name"));
@@ -24,15 +26,16 @@ public class NameController {
         return "GET 你的名字是" + username;
     }
 
-    @PostMapping("/")
+    @PostMapping("/post")
     public String getNameByPost(@RequestParam String name) {
         return "POST 你的名字是" + name;
     }
 
     @PostMapping("/user")
-    public String getUsernameByPost(@RequestBody User user, HttpServletRequest request){
+    public String getUsernameByPost(@RequestBody User user, HttpServletRequest request) throws Exception {
+        //if(1==1){throw new Exception("yesyeseyseysye");}
+        log.info("*************************");
         String accessKey=request.getHeader("accessKey");
-
         String nonce=request.getHeader("nonce");
         String timeStamp=request.getHeader("timeStamp");
         String sign=request.getHeader("sign");
