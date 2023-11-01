@@ -3,6 +3,8 @@ package com.shampo.shampo_interface.controller;
 
 import com.shampo.shampoclisdk.model.User;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,7 +35,9 @@ public class NameController {
 
     @PostMapping("/user")
     public String getUsernameByPost(@RequestBody User user, HttpServletRequest request) throws Exception {
-        //if(1==1){throw new Exception("yesyeseyseysye");}
+        if(1==1){
+            throw new RuntimeException("yesyeseyseysye");
+        }
         log.info("*************************");
         String accessKey=request.getHeader("accessKey");
         String nonce=request.getHeader("nonce");

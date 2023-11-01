@@ -298,7 +298,7 @@ public class InterfaceInfoController {
         //后期要修改
         log.info("i am here");
         String usernameByPost = tempClient.getUsernameByPost(user);
-
+        log.info(usernameByPost);
         return ResultUtils.success(usernameByPost);
     }
 

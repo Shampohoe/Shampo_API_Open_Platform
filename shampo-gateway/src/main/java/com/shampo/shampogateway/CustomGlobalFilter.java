@@ -1,6 +1,7 @@
 package com.shampo.shampogateway;
 
-import ch.qos.logback.classic.pattern.LineOfCallerConverter;
+
+
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -15,6 +16,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -108,6 +110,9 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                         log.info("body instanceof Flux: {}", (body instanceof Flux));
                         if (body instanceof Flux) {
                             Flux<? extends DataBuffer> fluxBody = Flux.from(body);
+                            if(exchange.getResponse().getStatusCode()==HttpStatus.INTERNAL_SERVER_ERROR){
+                                throw new RuntimeException("dd");
+                            }
                             // 往返回值里写数据
                             // 拼接字符串
                             return super.writeWith(
@@ -116,7 +121,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                                         byte[] content = new byte[dataBuffer.readableByteCount()];
                                         dataBuffer.read(content);
                                         DataBufferUtils.release(dataBuffer);//释放掉内存
-                                        int a=1/0;
+
                                         // 构建日志
                                         StringBuilder sb2 = new StringBuilder(200);
                                         List<Object> rspArgs = new ArrayList<>();
@@ -142,7 +147,8 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange); // 降级处理返回数据
         } catch (Exception e) {
             log.error("网关处理响应异常" + e);
-            return chain.filter(exchange);
+           return handleInvokeError(exchange.getResponse());
+            //return chain.filter(exchange);
         }
     }
 
@@ -175,6 +181,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         }*/
         return null;
     }
+
 
     @Override
     public int getOrder() {

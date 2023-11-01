@@ -101,6 +101,7 @@ public class CustomWebExceptionHandler implements ErrorWebExceptionHandler {
             body = "服务器压力山大，请稍后再试！";
         }*/
         else {
+
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
             body = httpStatus.name();
         }
