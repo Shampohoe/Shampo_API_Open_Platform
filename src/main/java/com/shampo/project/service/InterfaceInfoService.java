@@ -1,13 +1,8 @@
 package com.shampo.project.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
-import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
-import com.shampo.project.model.entity.InterfaceInfo;
-import com.shampo.project.model.vo.InterfaceInfoVO;
 
-import javax.servlet.http.HttpServletRequest;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.shampo.shampocommon.model.entity.InterfaceInfo;
 
 /**
 * @author 10488

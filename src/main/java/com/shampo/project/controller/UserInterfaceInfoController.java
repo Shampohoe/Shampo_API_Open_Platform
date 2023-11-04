@@ -13,11 +13,12 @@ import com.shampo.project.exception.BusinessException;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoAddRequest;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoQueryRequest;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoUpdateRequest;
-import com.shampo.project.model.entity.User;
-import com.shampo.project.model.entity.UserInterfaceInfo;
+
 import com.shampo.project.service.UserInterfaceInfoService;
 import com.shampo.project.service.UserService;
 import com.shampo.shampoclisdk.client.ShampoClient;
+import com.shampo.shampocommon.model.entity.User;
+import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;

@@ -1,7 +1,8 @@
 package com.shampo.project.mapper;
 
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shampo.project.model.entity.InterfaceInfo;
+import com.shampo.shampocommon.model.entity.InterfaceInfo;
 
 /**
 * @author 10488

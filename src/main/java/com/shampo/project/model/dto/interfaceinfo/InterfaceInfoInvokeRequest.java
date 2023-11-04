@@ -2,6 +2,8 @@ package com.shampo.project.model.dto.interfaceinfo;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 /**
  * ClassName:InterfaceInfoInvokeRequest
  * Package:com.shampo.project.model.dto.interfaceinfo
@@ -12,7 +14,7 @@ import lombok.Data;
  * #Version 1.1
  */
 @Data
-public class InterfaceInfoInvokeRequest {
+public class InterfaceInfoInvokeRequest implements Serializable {
     /**
      * 主键
      */

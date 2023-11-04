@@ -35,33 +35,8 @@ public class NameController {
 
     @PostMapping("/user")
     public String getUsernameByPost(@RequestBody User user, HttpServletRequest request) throws Exception {
-        if(1==1){
-            throw new RuntimeException("yesyeseyseysye");
-        }
         log.info("*************************");
-        String accessKey=request.getHeader("accessKey");
-        String nonce=request.getHeader("nonce");
-        String timeStamp=request.getHeader("timeStamp");
-        String sign=request.getHeader("sign");
-        String body=request.getHeader("body");
 
-        //实际去数据库查有没有对应的accessKey
-        /*if(!ifExist){
-            throw new RuntimeException("无权限");
-        }*/
-        if(Long.parseLong(nonce)>10000){
-            throw new RuntimeException("无权限");
-        }
-        //时间和当前时间不能超过5分钟
-        /*if(timeStamp){
-            throw new RuntimeException("无权限");
-        }*/
-        //实际情况是从数据库中查出secretKey
-
-        /*String serverSign= SignUtils.genSign(body,secretKey);
-        if(!sign.equals(serverSign)){
-            throw new RuntimeException("无权限");
-        }*/
         String result= "POST 用户名是"+user.getUsername();
 
 

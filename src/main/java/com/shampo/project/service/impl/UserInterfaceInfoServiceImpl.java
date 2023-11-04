@@ -1,18 +1,13 @@
 package com.shampo.project.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shampo.project.common.ErrorCode;
 import com.shampo.project.exception.BusinessException;
 import com.shampo.project.mapper.UserInterfaceInfoMapper;
-import com.shampo.project.model.entity.UserInterfaceInfo;
-import com.shampo.project.model.entity.UserInterfaceInfo;
 import com.shampo.project.service.UserInterfaceInfoService;
-import com.shampo.project.service.UserInterfaceInfoService;
-import com.shampo.project.mapper.UserInterfaceInfoMapper;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.elasticsearch.core.query.UpdateQuery;
+
+import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,7 +17,7 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoMapper, UserInterfaceInfo>
-    implements UserInterfaceInfoService {
+        implements UserInterfaceInfoService {
 
     @Override
     public void validUserInterfaceInfo(UserInterfaceInfo userInterfaceInfo, boolean add) {

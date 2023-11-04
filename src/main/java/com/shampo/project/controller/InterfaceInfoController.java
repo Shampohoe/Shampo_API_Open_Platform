@@ -11,12 +11,13 @@ import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoInvokeRequest;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
-import com.shampo.project.model.entity.InterfaceInfo;
-import com.shampo.project.model.entity.User;
+
 import com.shampo.project.model.enums.InterfaceInfoStatusEnum;
 import com.shampo.project.service.InterfaceInfoService;
 import com.shampo.project.service.UserService;
 import com.shampo.shampoclisdk.client.ShampoClient;
+import com.shampo.shampocommon.model.entity.InterfaceInfo;
+import com.shampo.shampocommon.model.entity.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+
 
 /**
  * 帖子接口

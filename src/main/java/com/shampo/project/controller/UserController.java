@@ -9,9 +9,10 @@ import com.shampo.project.common.ErrorCode;
 import com.shampo.project.common.ResultUtils;
 import com.shampo.project.exception.BusinessException;
 import com.shampo.project.model.dto.user.*;
-import com.shampo.project.model.entity.User;
+
 import com.shampo.project.model.vo.UserVO;
 import com.shampo.project.service.UserService;
+import com.shampo.shampocommon.model.entity.User;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;

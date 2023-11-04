@@ -1,8 +1,8 @@
 package com.shampo.project.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
-import com.shampo.project.model.entity.UserInterfaceInfo;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
 
 /**
 * @author 10488

@@ -1,23 +1,19 @@
-package com.shampo.project.model.entity;
+package com.shampo.shampocommon.model.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 用户
+ * 用户视图（脱敏）
  *
- * @TableName user
  */
-@TableName(value = "user")
 @Data
-public class User implements Serializable {
+public class UserVO implements Serializable {
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
@@ -46,21 +42,6 @@ public class User implements Serializable {
     private String userRole;
 
     /**
-     * 密码
-     */
-    private String userPassword;
-
-    /*
-    * 签名accessKey
-    * */
-    private String accessKey;
-
-    /*
-    * 签名secretKey
-    * */
-    private String secretKey;
-
-    /**
      * 创建时间
      */
     private Date createTime;
@@ -70,12 +51,7 @@ public class User implements Serializable {
      */
     private Date updateTime;
 
-    /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    // [编程导航学习圈](https://t.zsxq.com/0emozsIJh) 零基础快速入门编程，不走弯路！30+ 原创学习路线和专栏、1000+ 编程精华文章、500+ 编程学习指南、20T+ 编程资源汇总
 
-    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

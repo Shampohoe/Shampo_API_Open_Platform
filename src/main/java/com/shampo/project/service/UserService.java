@@ -1,9 +1,11 @@
 package com.shampo.project.service;
 
 
+
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shampo.project.model.dto.user.UserUpdateRequest;
-import com.shampo.project.model.entity.User;
+import com.shampo.shampocommon.model.entity.User;
+
 
 import javax.servlet.http.HttpServletRequest;
 

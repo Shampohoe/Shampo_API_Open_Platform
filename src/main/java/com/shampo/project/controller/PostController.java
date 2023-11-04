@@ -15,7 +15,8 @@ import com.shampo.project.model.dto.post.PostUpdateRequest;
 import com.shampo.project.model.entity.Post;
 import com.shampo.project.service.PostService;
 import com.shampo.project.service.UserService;
-import com.shampo.project.model.entity.User;
+
+import com.shampo.shampocommon.model.entity.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;

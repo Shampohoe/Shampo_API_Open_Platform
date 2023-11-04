@@ -1,5 +1,4 @@
-package com.shampo.project.model.vo;
-
+package com.shampo.shampocommon.model.vo;
 
 import lombok.Data;
 
