@@ -102,6 +102,8 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             return handleNoAuth(response);
         }
         // 5. 请求的模拟接口是否存在，以及请求方法是否匹配
+        // 从数据库查询模拟接口是否存在，以及请求方法是否匹配，（校验请求参数）
+        // 因为网关项目没有引入MyBatis等操作数据库的类库，如果该操作比较复杂，可以由backend增删改查项目提供接口，直接调用接口，不再重复写逻辑
         InterfaceInfo interfaceInfo = null;
         try {
             interfaceInfo = innerInterfaceInfoService.getInterfaceInfo(path, method);
@@ -112,11 +114,6 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             return handleNoAuth(response);
         }
 
-        // 5. 判断请求的模拟接口是否存在
-        // todo 从数据库查询模拟接口是否存在，以及请求方法是否匹配，（校验请求参数）
-        // todo 因为网关项目没有引入MyBatis等操作数据库的类库，如果该操作比较复杂，可以由backend增删改查项目提供接口，直接调用接口，不再重复写逻辑
-        //InterfaceInfo interfaceInfo=null;
-        //ifExistInterface(interfaceInfo,path,method,response);
 
         // 6. 请求转发、调用模拟接口
         // 7. 响应日志

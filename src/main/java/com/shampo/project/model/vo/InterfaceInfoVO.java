@@ -12,6 +12,7 @@ import java.io.Serializable;
 @Data
 public class InterfaceInfoVO implements Serializable {
 
+    private String name;
     /**
      * 调用次数
      */
@@ -30,6 +31,8 @@ public class InterfaceInfoVO implements Serializable {
      * 接口剩余可调用次数
      */
     private String availablePieces;
+
+    private static final long serialVersionUID = 1L;
 
 
 }
