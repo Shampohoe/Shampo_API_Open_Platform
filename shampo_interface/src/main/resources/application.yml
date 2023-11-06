@@ -5,4 +5,4 @@ server:
 shampo:
   client:
     access-key: shampo
-    secret-key: abcdefg
+    secret-key: 12345678

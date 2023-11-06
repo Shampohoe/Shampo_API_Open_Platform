@@ -10,10 +10,12 @@ import com.shampo.project.common.ResultUtils;
 import com.shampo.project.constant.CommonConstant;
 import com.shampo.project.constant.UserConstant;
 import com.shampo.project.exception.BusinessException;
+import com.shampo.project.model.dto.userinterfaceinfo.UpdateUserInterfaceInfoDTO;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoAddRequest;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoQueryRequest;
 import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoUpdateRequest;
 
+import com.shampo.project.model.vo.UserInterfaceInfoVO;
 import com.shampo.project.service.UserInterfaceInfoService;
 import com.shampo.project.service.UserService;
 import com.shampo.shampoclisdk.client.ShampoClient;
@@ -43,8 +45,6 @@ public class UserInterfaceInfoController {
 
     @Resource
     private UserService userService;
-    @Resource
-    ShampoClient shampoClient;
 
     // region 增删改查
 
@@ -203,6 +203,13 @@ public class UserInterfaceInfoController {
     }
 
     // endregion
+
+    @GetMapping("/list/userId")
+    public BaseResponse<List<UserInterfaceInfoVO>> getInterfaceInfoByUserId(@RequestParam Long userId, HttpServletRequest request) {
+        List<UserInterfaceInfoVO> userInterfaceInfoVOList = userInterfaceInfoService.getInterfaceInfoByUserId(userId, request);
+        return ResultUtils.success(userInterfaceInfoVOList);
+    }
+
 
 
 
