@@ -1,5 +1,8 @@
 package com.shampo.project.service.impl;
 
+import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.LineCaptcha;
+import cn.hutool.captcha.generator.RandomGenerator;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -15,11 +18,16 @@ import com.shampo.shampocommon.model.entity.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static com.shampo.project.constant.UserConstant.ADMIN_ROLE;
 import static com.shampo.project.constant.UserConstant.USER_LOGIN_STATE;
@@ -37,6 +45,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    private static final String CAPTCHA_PREFIX = "api:captchaId:";
 
 
     /**
@@ -196,6 +209,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
+    }
+
+    @Override
+    public void getCaptcha(HttpServletRequest request, HttpServletResponse response) {
+        //前端必须传一个 signature 来作为唯一标识
+        String signature = request.getHeader("signature");
+        if (StringUtils.isEmpty(signature)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        try {
+            // 自定义纯数字的验证码（随机4位数字，可重复）
+            RandomGenerator randomGenerator = new RandomGenerator("0123456789", 4);
+            LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(100, 30);
+            lineCaptcha.setGenerator(randomGenerator);
+            //设置响应头
+            response.setContentType("image/jpeg");
+            response.setHeader("Pragma", "No-cache");
+            // 输出到页面
+            lineCaptcha.write(response.getOutputStream());
+            // 打印日志
+            log.info("captchaId：{} ----生成的验证码:{}", signature, lineCaptcha.getCode());
+            // 将验证码设置到Redis中,2分钟过期
+            stringRedisTemplate.opsForValue().set(CAPTCHA_PREFIX + signature, lineCaptcha.getCode(), 2, TimeUnit.MINUTES);
+            // 关闭流
+            response.getOutputStream().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

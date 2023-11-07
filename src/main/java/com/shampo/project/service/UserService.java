@@ -8,6 +8,7 @@ import com.shampo.shampocommon.model.entity.User;
 
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * 用户服务
@@ -62,6 +63,10 @@ public interface UserService extends IService<User> {
 
     boolean userUpdate(String userAccount,String userPassword, UserUpdateRequest userUpdateRequest);
 
-    //boolean ifExistAccessKey(String accessKey);
-    //String getSecretKey(String accessKey);
+    /**
+     * 生成图像验证码
+     * @param request
+     * @param response
+     */
+    void getCaptcha(HttpServletRequest request, HttpServletResponse response);
 }
