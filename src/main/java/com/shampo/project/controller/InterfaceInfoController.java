@@ -14,10 +14,12 @@ import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 
 import com.shampo.project.model.enums.InterfaceInfoStatusEnum;
 import com.shampo.project.service.InterfaceInfoService;
+import com.shampo.project.service.UserInterfaceInfoService;
 import com.shampo.project.service.UserService;
 import com.shampo.shampoclisdk.client.ShampoClient;
 import com.shampo.shampocommon.model.entity.InterfaceInfo;
 import com.shampo.shampocommon.model.entity.User;
+import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.List;
 
 
@@ -41,6 +45,8 @@ public class InterfaceInfoController {
     @Resource
     private InterfaceInfoService interfaceInfoService;
 
+    @Resource
+    private UserInterfaceInfoService userInterfaceInfoService;
     @Resource
     private UserService userService;
     @Resource
@@ -223,12 +229,18 @@ public class InterfaceInfoController {
         if (oldInterfaceInfo == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+
         //判断是否可以调用
-        com.shampo.shampoclisdk.model.User user=new com.shampo.shampoclisdk.model.User();
-        user.setUsername("test");
-        String result = shampoClient.getUsernameByPost(user);
-        if(StringUtils.isBlank(result)){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"接口验证失败");
+        User loginUser = userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+
+        Object res = invokeInterfaceInfo(oldInterfaceInfo.getSdk(), oldInterfaceInfo.getName(), oldInterfaceInfo.getRequestParams(), accessKey, secretKey);
+        if (res == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (res.toString().contains("Error request")) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统接口内部异常");
         }
 
         // 仅本人或管理员可修改
@@ -268,6 +280,7 @@ public class InterfaceInfoController {
         return ResultUtils.success(result1);
     }
 
+
     /**
      * 测试调用
      * @param interfaceInfoInvokeRequest
@@ -281,7 +294,7 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
-        // 判断是否存在
+        // 1.判断是否存在
         long id=interfaceInfoInvokeRequest.getId();
         String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
         InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
@@ -291,17 +304,74 @@ public class InterfaceInfoController {
         if(oldInterfaceInfo.getStatus()==InterfaceInfoStatusEnum.OFFLINE.getValue()){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"接口已关闭");
         }
+
         User loginUser=userService.getLoginUser(request);
         String accessKey = loginUser.getAccessKey();
         String secretKey = loginUser.getSecretKey();
-        ShampoClient tempClient=new ShampoClient(accessKey,secretKey);
-        Gson gson=new Gson();
-        com.shampo.shampoclisdk.model.User user = gson.fromJson(userRequestParams, com.shampo.shampoclisdk.model.User.class);
-        //后期要修改
-        log.info("i am here");
-        String usernameByPost = tempClient.getUsernameByPost(user);
-        log.info(usernameByPost);
-        return ResultUtils.success(usernameByPost);
+
+
+        //2.用户调用次数校验
+        QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper<>();
+        userInterfaceInfoQueryWrapper.eq("userId", loginUser.getId());
+        userInterfaceInfoQueryWrapper.eq("interfaceInfoId", id);
+        UserInterfaceInfo userInterfaceInfo = userInterfaceInfoService.getOne(userInterfaceInfoQueryWrapper);
+        if (userInterfaceInfo == null){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "调用次数不足！");
+        }
+        int leftNum = userInterfaceInfo.getLeftNum();
+        if(leftNum <= 0){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "调用次数不足！");
+        }
+
+
+        //3.发起接口调用
+        String requestParams= interfaceInfoInvokeRequest.getUserRequestParams();
+        log.info(requestParams+"---***___");
+        Object res = invokeInterfaceInfo(oldInterfaceInfo.getSdk(), oldInterfaceInfo.getName(), requestParams, accessKey, secretKey);
+        if (res == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (res.toString().contains("Error request")) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "调用错误，请检查参数和接口调用次数！");
+        }
+        return ResultUtils.success(res);
+    }
+
+
+    private Object invokeInterfaceInfo(String classPath, String methodName, String userRequestParams,
+                                       String accessKey, String secretKey) {
+        try {
+
+            Class<?> clientClazz = Class.forName(classPath);
+            // 1. 获取构造器，参数为ak,sk
+            Constructor<?> binApiClientConstructor = clientClazz.getConstructor(String.class, String.class);
+            // 2. 构造出客户端
+            Object apiClient =  binApiClientConstructor.newInstance(accessKey, secretKey);
+
+            // 3. 找到要调用的方法
+            Method[] methods = clientClazz.getMethods();
+            for (Method method : methods) {
+                if (method.getName().equals(methodName)) {
+                    // 3.1 获取参数类型列表
+                    Class<?>[] parameterTypes = method.getParameterTypes();
+                    log.info(parameterTypes.toString()+"******");
+                    if (parameterTypes.length == 0) {
+                        // 如果没有参数，直接调用
+                        return method.invoke(apiClient);
+                    }
+                    log.info("------------");
+                    Gson gson = new Gson();
+                    // 构造参数
+                    Object parameter= gson.fromJson(userRequestParams, parameterTypes[0]);
+                    //log.info(parameter.getClass().toString());
+                    return method.invoke(apiClient, parameter);
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "找不到调用的方法!! 请检查你的请求参数是否正确!");
+        }
     }
 
 }

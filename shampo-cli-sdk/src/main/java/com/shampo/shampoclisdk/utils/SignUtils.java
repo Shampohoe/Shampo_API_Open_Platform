@@ -16,7 +16,12 @@ public class SignUtils {
     //签名算法
     public static String genSign(String body, String secretKey){
         Digester md5 = new Digester(DigestAlgorithm.SHA256);
-        String content=body+"."+secretKey;
+            String content;
+        if(body!=null){
+            content=body+"."+secretKey;
+        }else{
+            content="."+secretKey;
+        }
         // 5393554e94bf0eb6436f240a4fd71282
         return md5.digestHex(content);
     }

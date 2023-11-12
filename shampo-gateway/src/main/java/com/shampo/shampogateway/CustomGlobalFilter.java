@@ -63,10 +63,11 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         log.info("请求来源地址"+hostString);
         log.info("请求来源地址"+request.getRemoteAddress());
 
+
         // 3. （黑白名单）
         ServerHttpResponse response = exchange.getResponse();
         if(!IP_WHITE_LIST.contains(hostString)){
-
+            log.info("0");
             return handleNoAuth(response);
         }
         // 4. 用户鉴权（判断 ak、sk 是否合法）
@@ -76,6 +77,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         String timestamp = headers.getFirst("timestamp");
         String sign = headers.getFirst("sign");
         String body = headers.getFirst("body");
+        log.info("body:"+body);
         // 去数据库中查是否已分配给用户
         User invokeUser = null;
         try {
@@ -84,21 +86,25 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             log.error("getInvokeUser error", e);
         }
         if (invokeUser == null) {
+            log.info("1");
             return handleNoAuth(response);
         }
         if (Long.parseLong(nonce) > 10000L) {
+            log.info("2");
             return handleNoAuth(response);
         }
         // 时间和当前时间不能超过 5 分钟
         Long currentTime = System.currentTimeMillis() / 1000;
         final Long FIVE_MINUTES = 60 * 5L;
         if ((currentTime - Long.parseLong(timestamp)) >= FIVE_MINUTES) {
+            log.info("3");
             return handleNoAuth(response);
         }
         //从数据库中查出 secretKey
         String secretKey = invokeUser.getSecretKey();
         String serverSign = SignUtils.genSign(body, secretKey);
         if (sign == null || !sign.equals(serverSign)) {
+            log.info("4");
             return handleNoAuth(response);
         }
         // 5. 请求的模拟接口是否存在，以及请求方法是否匹配
@@ -111,6 +117,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             log.error("getInterfaceInfo error", e);
         }
         if (interfaceInfo == null) {
+            log.info("5");
             return handleNoAuth(response);
         }
 
@@ -160,6 +167,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                     public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
                         log.info("body instanceof Flux: {}", (body instanceof Flux));
                         if (body instanceof Flux) {
+                            log.info(exchange.getResponse().getStatusCode().toString());
                             Flux<? extends DataBuffer> fluxBody = Flux.from(body);
                             if(exchange.getResponse().getStatusCode()==HttpStatus.INTERNAL_SERVER_ERROR){
                                 throw new RuntimeException("后端服务模块调用异常");
@@ -208,57 +216,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         }
     }
 
-    /*private Mono<Void> ifExistInterface(InterfaceInfo interfaceInfo,String path,String method,ServerHttpResponse response){
-        try{
-            interfaceInfo=innerInterfaceInfoService.getInterfaceInfo(path,method);
-        }catch(Exception e){
-            log.error("getInterfaceInfo error",e);
-        }
-        if(interfaceInfo==null){
-            return handleNoAuth(response);
-        }
-        return null;
-    }
-*/
 
-    //用户鉴权
-    /*private Mono<Void> authenticate(User invokeUser,ServerHttpRequest request, ServerHttpResponse response){
-        HttpHeaders headers = request.getHeaders();
-        String accessKey=headers.getFirst("accessKey");
-        String nonce=headers.getFirst("nonce");
-        String timeStamp=headers.getFirst("timeStamp");
-        String sign=headers.getFirst("sign");
-        String body=headers.getFirst("body");
-        //远程方法调用：去数据库查有没有对应的accessKey
-        try{
-            invokeUser=innerUserService.getInvokeUser(accessKey);
-        }catch(Exception e){
-            log.error("getInvokeUser error",e);
-        }
-        if(invokeUser==null){
-            return handleNoAuth(response);
-        }
-
-
-
-        if(Long.parseLong(nonce)>10000){
-            return handleNoAuth(response);
-        }
-        //时间和当前时间不能超过5分钟
-        Long currentTime=System.currentTimeMillis()/1000;
-        final Long FIVE_MINUTES=60*5L;
-        if((currentTime-Long.parseLong(timeStamp))>=FIVE_MINUTES){
-            return handleNoAuth(response);
-        }
-        //实际情况是从数据库中查出secretKey
-        String secretKey= invokeUser.getSecretKey();
-        String serverSign= SignUtils.genSign(body,secretKey);
-        if(sign==null||!sign.equals(serverSign)){
-            return handleNoAuth(response);
-        }
-        return null;
-    }
-*/
 
     @Override
     public int getOrder() {

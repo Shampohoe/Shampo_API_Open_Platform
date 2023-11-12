@@ -13,6 +13,8 @@ create table if not exists shampohoe_api.`interface_info`
     `status` int default 0 not null comment '接口状态0关闭1开启',
     `method` varchar(256) not null comment '请求类型',
     `userId` bigint not null comment '创建人',
+    `sdk` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '接口对应的SDK类路径',
+    `parameterExample` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '参数示例',
     `createTime` datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     `updateTime` datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间'
     ) comment '接口信息';

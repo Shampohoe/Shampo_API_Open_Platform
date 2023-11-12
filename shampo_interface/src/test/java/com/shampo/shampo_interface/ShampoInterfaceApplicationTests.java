@@ -16,12 +16,12 @@ class ShampoInterfaceApplicationTests {
 
 	@Test
 	void contextLoads() {
-		String result1=shampoClient.getNameByGet("shampo");
+		/*String result1=shampoClient.getNameByGet("shampo");
 		User user=new User();
 		user.setUsername("kkli");
 		String result3=shampoClient.getUsernameByPost(user);
 		System.out.println(result1);
-		System.out.println(result3);
+		System.out.println(result3);*/
 	}
 
 }

@@ -17,26 +17,15 @@ import javax.servlet.http.HttpServletRequest;
 public class NameController {
 
 
-    @GetMapping("/get")
-    public String getNameByGet(String username,HttpServletRequest request) {
-        System.out.println(request.getHeader("shampo"));
-        System.out.println(request.getParameter("name"));
-        System.out.println(request.getParameter("username"));
-        return "GET 你的名字是" + username;
-    }
-
-    @PostMapping("/post")
-    public String getNameByPost(@RequestParam String name) {
-        return "POST 你的名字是" + name;
-    }
-
     @PostMapping("/user")
     public String getUsernameByPost(@RequestBody User user, HttpServletRequest request) throws Exception {
         log.info("*************************");
-
-        String result= "POST 用户名是"+user.getUsername();
-
-
+        String result=null;
+        if(user.getUsername()!=null){
+            result= "POST 用户名是"+user.getUsername();
+        }else{
+            result="";
+        }
         return result;
     }
 
