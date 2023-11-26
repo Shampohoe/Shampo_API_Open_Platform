@@ -31,7 +31,7 @@ public class ExceptionConfig {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public ErrorWebExceptionHandler errorWebExceptionHandler(ObjectProvider<List<ViewResolver>> viewResolversProvider,
-                                                             ServerCodecConfigurer serverCodecConfigurer,
+                                                             ServerCodecConfigurer serverCodecConfigurer ,
                                                              CustomWebExceptionHandler customWebExceptionHandler) {
         customWebExceptionHandler.setViewResolvers(viewResolversProvider.getIfAvailable(Collections::emptyList));
         customWebExceptionHandler.setMessageWriters(serverCodecConfigurer.getWriters());

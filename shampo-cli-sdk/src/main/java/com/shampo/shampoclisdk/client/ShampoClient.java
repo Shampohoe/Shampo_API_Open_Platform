@@ -1,16 +1,10 @@
 package com.shampo.shampoclisdk.client;
 
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
 import com.shampo.shampoclisdk.model.User;
-import com.shampo.shampoclisdk.utils.SignUtils;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * ClassName:ShampoClient

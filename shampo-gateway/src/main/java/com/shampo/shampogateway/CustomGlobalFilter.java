@@ -42,7 +42,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
     private InnerUserService innerUserService;
     @DubboReference
     private InnerInterfaceInfoService innerInterfaceInfoService;
-    @DubboReference
+    @DubboReference(timeout = 20000,retries = 0)
     private InnerUserInterfaceInfoService innerUserInterfaceInfoService;
     private static final List<String> IP_WHITE_LIST= Arrays.asList("127.0.0.1");
     private static final String INTERFACE_HOST="http://localhost:8123";
@@ -62,6 +62,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         String hostString = request.getLocalAddress().getHostString();
         log.info("请求来源地址"+hostString);
         log.info("请求来源地址"+request.getRemoteAddress());
+        //log.info("请求体："+request.getBody());
 
 
         // 3. （黑白名单）
@@ -179,7 +180,9 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                                         try{
                                             innerUserInterfaceInfoService.invokeCount(interfaceInfoId,userId);
                                         }catch(Exception e){
+
                                             log.error("invokeCount error",e);
+                                            throw new RuntimeException("接口统计调用失败");
                                         }
 
                                         byte[] content = new byte[dataBuffer.readableByteCount()];

@@ -17,6 +17,11 @@ spring:
     port: 6379
     timeout: 5000
 #    password: 123456
+ # redisson:
+  #  config: classpath:classpath:redisson.yml
+  #实现分布式锁
+  #redission:
+  #  config: classpath:redisson.yml
   # Elasticsearch 配置
   # todo 需替换配置
   elasticsearch:

@@ -10,10 +10,7 @@ import com.shampo.project.common.ResultUtils;
 import com.shampo.project.constant.CommonConstant;
 import com.shampo.project.constant.UserConstant;
 import com.shampo.project.exception.BusinessException;
-import com.shampo.project.model.dto.userinterfaceinfo.UpdateUserInterfaceInfoDTO;
-import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoAddRequest;
-import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoQueryRequest;
-import com.shampo.project.model.dto.userinterfaceinfo.UserInterfaceInfoUpdateRequest;
+import com.shampo.project.model.dto.userinterfaceinfo.*;
 
 import com.shampo.project.model.vo.UserInterfaceInfoVO;
 import com.shampo.project.service.UserInterfaceInfoService;
@@ -21,8 +18,10 @@ import com.shampo.project.service.UserService;
 import com.shampo.shampoclisdk.client.ShampoClient;
 import com.shampo.shampocommon.model.entity.User;
 import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
+import com.shampo.shampocommon.service.InnerUserInterfaceInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,9 +44,19 @@ public class UserInterfaceInfoController {
 
     @Resource
     private UserService userService;
-
+    @DubboReference
+    private InnerUserInterfaceInfoService innerUserInterfaceInfoService;
     // region 增删改查
 
+    //接口测试
+    @PostMapping("/invoke")
+    public BaseResponse<Boolean> invokeCount(@RequestBody InvokeUserInterfaceInfoRequest invokeUserInterfaceInfoRequest){
+        long userId=invokeUserInterfaceInfoRequest.getUserId();
+        long interfaceId=invokeUserInterfaceInfoRequest.getInterfaceInfoId();
+        boolean b1 = innerUserInterfaceInfoService.invokeCount(interfaceId, userId);
+        //boolean b = userInterfaceInfoService.invokeCount(interfaceId, userId);
+        return ResultUtils.success(b1);
+    }
     /**
      * 创建
      *

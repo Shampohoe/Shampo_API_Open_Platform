@@ -4,28 +4,36 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
 import com.shampo.project.common.ErrorCode;
 import com.shampo.project.constant.UserConstant;
 import com.shampo.project.exception.BusinessException;
 import com.shampo.project.mapper.UserInterfaceInfoMapper;
+import com.shampo.project.model.dto.userinterfaceinfo.RedisUserInterfaceDTO;
 import com.shampo.project.model.dto.userinterfaceinfo.UpdateUserInterfaceInfoDTO;
 import com.shampo.project.model.vo.UserInterfaceInfoVO;
 import com.shampo.project.service.InterfaceInfoService;
 import com.shampo.project.service.UserInterfaceInfoService;
-
 import com.shampo.project.service.UserService;
 import com.shampo.shampocommon.model.entity.InterfaceInfo;
 import com.shampo.shampocommon.model.entity.User;
 import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -34,13 +42,22 @@ import java.util.stream.Collectors;
 * @createDate 2023-10-28 22:13:07
 */
 @Service
+@Slf4j
 public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoMapper, UserInterfaceInfo>
         implements UserInterfaceInfoService {
 
     @Resource
+    private RedissonClient redissonClient;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Resource
     private UserService userService;
     @Resource
     private InterfaceInfoService interfaceInfoService;
+
+    private final static Gson gson=new Gson();
+    private int numss=0;
 
     @Override
     public void validUserInterfaceInfo(UserInterfaceInfo userInterfaceInfo, boolean add) {
@@ -64,12 +81,38 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
         if(interfaceInfoId<=0||userId<=0){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        //后期要加锁或分布式锁进行优化
-        UpdateWrapper<UserInterfaceInfo> updateWrapper=new UpdateWrapper<>();
-        updateWrapper.eq("interfaceInfoId",interfaceInfoId);
-        updateWrapper.eq("userId",userId);
-        updateWrapper.setSql("leftNum=leftNum-1,totalNum=totalNum+1");
-        return this.update(updateWrapper);
+        RedisUserInterfaceDTO redisUserInterfaceDTO=new RedisUserInterfaceDTO(userId,interfaceInfoId);
+        // 将对象转换为 JSON 字符串
+        String jsonString = gson.toJson(redisUserInterfaceDTO);
+        //配置锁
+        RLock lock = redissonClient.getLock(jsonString);
+        //该线程唯一标识UUID，用于实现幂等性
+        String uniqueIdentifier =Thread.currentThread().getName();
+        log.info("+++++"+uniqueIdentifier);
+        try {
+            if(lock.tryLock(30, 15, TimeUnit.SECONDS)){
+                //Object o = redisTemplate.opsForValue().get(uniqueIdentifier);
+               // if(o==null){
+                    //redisTemplate.opsForValue().set(uniqueIdentifier,"value",30,TimeUnit.SECONDS);
+                    log.info(Thread.currentThread().getName()+"获取锁");
+                    //后期要加锁或分布式锁进行优化
+                    UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
+                    updateWrapper.eq("interfaceInfoId", interfaceInfoId);
+                    updateWrapper.eq("userId", userId);
+                    updateWrapper.setSql("leftNum=leftNum-1,totalNum=totalNum+1");
+                    this.update(updateWrapper);
+               // }
+                return true;
+            }else{
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        } finally {
+            log.info(Thread.currentThread().getName()+"释放锁");
+                lock.unlock();
+        }
     }
 
     //展示用户所调用的接口
@@ -113,6 +156,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
     }
 
     @Override
+    @Transactional
     public boolean updateUserInterfaceInfo(UpdateUserInterfaceInfoDTO updateUserInterfaceInfoDTO) {
         Long userId = updateUserInterfaceInfoDTO.getUserId();
         Long interfaceId = updateUserInterfaceInfoDTO.getInterfaceId();
@@ -127,22 +171,46 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
                         .eq("userId", userId)
                         .eq("interfaceInfoId", interfaceId)
         );
-
+        RedisUserInterfaceDTO redisUserInterfaceDTO=new RedisUserInterfaceDTO(userId,interfaceId);
         if (one != null) {
-            // 说明是增加数量
-            return this.update(
-                    new UpdateWrapper<UserInterfaceInfo>()
-                            .eq("userId", userId)
-                            .eq("interfaceInfoId", interfaceId)
-                            .setSql("leftNum = leftNum + " + lockNum)
-            );
+            try{
+                // 说明是增加数量
+                this.update(
+                        new UpdateWrapper<UserInterfaceInfo>()
+                                .eq("userId", userId)
+                                .eq("interfaceInfoId", interfaceId)
+                                .setSql("leftNum = leftNum + " + lockNum)
+                );
+                one.setLeftNum((int)(one.getLeftNum()+lockNum));
+                redisTemplate.opsForSet().add(redisUserInterfaceDTO,one);
+                //设置过期时间:1天
+                //redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
+                return true;
+            }catch (Exception e){
+                //错误则回滚
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR,"保存错误");
+            }
         } else {
-            // 说明是第一次购买
-            UserInterfaceInfo userInterfaceInfo = new UserInterfaceInfo();
-            userInterfaceInfo.setUserId(userId);
-            userInterfaceInfo.setInterfaceInfoId(interfaceId);
-            userInterfaceInfo.setLeftNum(Math.toIntExact(lockNum));
-            return this.save(userInterfaceInfo);
+            try{
+                // 说明是第一次购买
+                UserInterfaceInfo userInterfaceInfo = new UserInterfaceInfo();
+                userInterfaceInfo.setUserId(userId);
+                userInterfaceInfo.setInterfaceInfoId(interfaceId);
+                userInterfaceInfo.setLeftNum(Math.toIntExact(lockNum));
+
+                //先更新数据库再更新缓存
+                this.save(userInterfaceInfo);
+                redisTemplate.opsForSet().add(redisUserInterfaceDTO,userInterfaceInfo);
+                //设置过期时间:1天
+                //redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
+                return true;
+            }catch (Exception e){
+                //错误则回滚
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR,"保存错误");
+            }
+
         }
 
     }
