@@ -7,10 +7,7 @@ import com.shampo.project.annotation.AuthCheck;
 import com.shampo.project.common.*;
 import com.shampo.project.constant.CommonConstant;
 import com.shampo.project.exception.BusinessException;
-import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
-import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoInvokeRequest;
-import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
-import com.shampo.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
+import com.shampo.project.model.dto.interfaceinfo.*;
 
 import com.shampo.project.model.enums.InterfaceInfoStatusEnum;
 import com.shampo.project.service.InterfaceInfoService;
@@ -23,6 +20,7 @@ import com.shampo.shampocommon.model.entity.UserInterfaceInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -30,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -44,13 +43,14 @@ public class InterfaceInfoController {
 
     @Resource
     private InterfaceInfoService interfaceInfoService;
-
     @Resource
     private UserInterfaceInfoService userInterfaceInfoService;
     @Resource
     private UserService userService;
     @Resource
-    ShampoClient shampoClient;
+    private RedisTemplate redisTemplate;
+    private final static String INTERFACE="interface";
+
 
     // region 增删改查
 
@@ -104,6 +104,14 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         boolean b = interfaceInfoService.removeById(id);
+        if(b){//删除缓存
+            String interfaceId=INTERFACE+id;
+            RedisInterfaceInfoDTO o = (RedisInterfaceInfoDTO) redisTemplate.opsForValue().get(interfaceId);
+            if(o!=null){
+                redisTemplate.opsForValue().getOperations().delete(interfaceId);
+                redisTemplate.opsForValue().getOperations().delete(o);
+            }
+        }
         return ResultUtils.success(b);
     }
 
@@ -136,6 +144,14 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         boolean result = interfaceInfoService.updateById(interfaceInfo);
+        if(result){//删除缓存
+            String interfaceId=INTERFACE+id;
+            RedisInterfaceInfoDTO o = (RedisInterfaceInfoDTO) redisTemplate.opsForValue().get(interfaceId);
+            if(o!=null){
+                redisTemplate.opsForValue().getOperations().delete(interfaceId);
+                redisTemplate.opsForValue().getOperations().delete(o);
+            }
+        }
         return ResultUtils.success(result);
     }
 
@@ -150,7 +166,23 @@ public class InterfaceInfoController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        InterfaceInfo interfaceInfo = interfaceInfoService.getById(id);
+        String interfaceId=INTERFACE+id;
+        //先查缓存，不命中再查数据库
+        RedisInterfaceInfoDTO o = (RedisInterfaceInfoDTO) redisTemplate.opsForValue().get(interfaceId);
+        InterfaceInfo interfaceInfo=null;
+        if(o!=null){
+            interfaceInfo = (InterfaceInfo) redisTemplate.opsForValue().get(o);
+            if(interfaceInfo!=null){return ResultUtils.success(interfaceInfo);}
+        }else if(interfaceInfo==null){
+            interfaceInfo = interfaceInfoService.getById(id);
+            String url = interfaceInfo.getUrl();
+            String method = interfaceInfo.getMethod();
+            RedisInterfaceInfoDTO redisInterfaceInfoDTO=new RedisInterfaceInfoDTO(url,method);
+            redisTemplate.opsForValue().set(interfaceId,redisInterfaceInfoDTO,10800,TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(redisInterfaceInfoDTO,interfaceInfo,10800,TimeUnit.SECONDS);
+
+        }
+
         return ResultUtils.success(interfaceInfo);
     }
 
@@ -230,24 +262,23 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
 
-        //判断是否可以调用
-        User loginUser = userService.getLoginUser(request);
-        String accessKey = loginUser.getAccessKey();
-        String secretKey = loginUser.getSecretKey();
-
-        Object res = invokeInterfaceInfo(oldInterfaceInfo.getSdk(), oldInterfaceInfo.getName(), oldInterfaceInfo.getRequestParams(), accessKey, secretKey);
-        if (res == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        if (res.toString().contains("Error request")) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统接口内部异常");
-        }
 
         // 仅本人或管理员可修改
         InterfaceInfo interfaceInfo=new InterfaceInfo();
         interfaceInfo.setId(id);
         interfaceInfo.setStatus(InterfaceInfoStatusEnum.ONLINE.getValue());
         boolean result1 = interfaceInfoService.updateById(interfaceInfo);
+        //更新缓存
+        if(result1){
+            InterfaceInfo newInterfaceInfo = interfaceInfoService.getById(id);
+            String interfaceId=INTERFACE+id;
+            String url = newInterfaceInfo.getUrl();
+            String method = newInterfaceInfo.getMethod();
+            RedisInterfaceInfoDTO redisInterfaceInfoDTO=new RedisInterfaceInfoDTO(url,method);
+            redisTemplate.opsForValue().set(interfaceId,redisInterfaceInfoDTO,10800,TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(redisInterfaceInfoDTO,newInterfaceInfo,10800,TimeUnit.SECONDS);
+        }
+
         return ResultUtils.success(result1);
     }
 
@@ -277,6 +308,16 @@ public class InterfaceInfoController {
         interfaceInfo.setId(id);
         interfaceInfo.setStatus(InterfaceInfoStatusEnum.OFFLINE.getValue());
         boolean result1 = interfaceInfoService.updateById(interfaceInfo);
+        //删除缓存
+        if(result1){
+            String interfaceId=INTERFACE+id;
+            RedisInterfaceInfoDTO o = (RedisInterfaceInfoDTO) redisTemplate.opsForValue().get(interfaceId);
+            if(o!=null){
+                redisTemplate.opsForValue().getOperations().delete(interfaceId);
+                redisTemplate.opsForValue().getOperations().delete(o);
+            }
+        }
+
         return ResultUtils.success(result1);
     }
 
@@ -296,8 +337,22 @@ public class InterfaceInfoController {
 
         // 1.判断是否存在
         long id=interfaceInfoInvokeRequest.getId();
-        String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
-        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        String interfaceId=INTERFACE+id;
+        //先查缓存
+        InterfaceInfo oldInterfaceInfo = null;
+        RedisInterfaceInfoDTO o = (RedisInterfaceInfoDTO) redisTemplate.opsForValue().get(interfaceId);
+        if(o!=null){
+            oldInterfaceInfo = (InterfaceInfo) redisTemplate.opsForValue().get(o);
+        }else if(oldInterfaceInfo==null){
+            //再查数据库,并更新缓存
+            oldInterfaceInfo = interfaceInfoService.getById(id);
+            String url = oldInterfaceInfo.getUrl();
+            String method = oldInterfaceInfo.getMethod();
+            RedisInterfaceInfoDTO redisInterfaceInfoDTO=new RedisInterfaceInfoDTO(url,method);
+            redisTemplate.opsForValue().set(redisInterfaceInfoDTO,oldInterfaceInfo,10800, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(interfaceId,redisInterfaceInfoDTO,10800, TimeUnit.SECONDS);
+
+        }
         if (oldInterfaceInfo == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
@@ -311,6 +366,7 @@ public class InterfaceInfoController {
 
 
         //2.用户调用次数校验
+        // TODO 设置缓存，设置读写锁
         QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper<>();
         userInterfaceInfoQueryWrapper.eq("userId", loginUser.getId());
         userInterfaceInfoQueryWrapper.eq("interfaceInfoId", id);
@@ -323,10 +379,8 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "调用次数不足！");
         }
 
-
         //3.发起接口调用
         String requestParams= interfaceInfoInvokeRequest.getUserRequestParams();
-        log.info(requestParams+"---***___");
         Object res = invokeInterfaceInfo(oldInterfaceInfo.getSdk(), oldInterfaceInfo.getName(), requestParams, accessKey, secretKey);
         if (res == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);

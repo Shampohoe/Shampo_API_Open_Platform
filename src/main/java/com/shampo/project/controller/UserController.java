@@ -3,6 +3,7 @@ package com.shampo.project.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.shampo.project.annotation.AuthCheck;
 import com.shampo.project.common.BaseResponse;
 import com.shampo.project.common.DeleteRequest;
 import com.shampo.project.common.ErrorCode;
@@ -15,6 +16,8 @@ import com.shampo.project.service.UserService;
 import com.shampo.shampocommon.model.entity.User;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -22,6 +25,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.shampo.project.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户接口
@@ -34,7 +39,8 @@ public class UserController {
 
     @Resource
     private UserService userService;
-
+    @Autowired
+    private RedisTemplate redisTemplate;
     // region 登录相关
 
     /**
@@ -80,7 +86,7 @@ public class UserController {
     }
 
     /**
-     * 用户注销
+     * 用户退出登录
      *
      * @param request
      * @return
@@ -120,10 +126,12 @@ public class UserController {
      * @return
      */
     @PostMapping("/add")
+    @AuthCheck(mustRole = "admin")
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        //TODO 这里并没有校验用户账户是否重复
         User user = new User();
         BeanUtils.copyProperties(userAddRequest, user);
         boolean result = userService.save(user);
@@ -141,11 +149,20 @@ public class UserController {
      * @return
      */
     @PostMapping("/delete")
+    @AuthCheck(mustRole = "admin")
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        if(request.getSession().getAttribute(USER_LOGIN_STATE)==null){
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        User user = userService.getById(deleteRequest.getId());
         boolean b = userService.removeById(deleteRequest.getId());
+        if(b){
+            String accessKey = user.getAccessKey();
+            redisTemplate.opsForValue().getOperations().delete(accessKey);
+        }
         return ResultUtils.success(b);
     }
 
@@ -177,6 +194,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get")
+    @AuthCheck(mustRole = "admin")
     public BaseResponse<UserVO> getUserById(int id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -195,6 +213,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/list")
+    @AuthCheck(mustRole = "admin")
     public BaseResponse<List<UserVO>> listUser(UserQueryRequest userQueryRequest, HttpServletRequest request) {
         User userQuery = new User();
         if (userQueryRequest != null) {
@@ -218,6 +237,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/list/page")
+    @AuthCheck(mustRole = "admin")
     public BaseResponse<Page<UserVO>> listUserByPage(UserQueryRequest userQueryRequest, HttpServletRequest request) {
         long current = 1;
         long size = 10;

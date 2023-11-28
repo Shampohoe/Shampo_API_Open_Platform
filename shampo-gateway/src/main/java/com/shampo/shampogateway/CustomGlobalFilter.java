@@ -126,8 +126,6 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         // 6. 请求转发、调用模拟接口
         // 7. 响应日志
         log.info("custom global filter");
-        Long id = interfaceInfo.getId();
-        Long id1 = invokeUser.getId();
         Mono<Void> filter=handleResponse(exchange, chain,interfaceInfo.getId(),invokeUser.getId());//异步调用
         log.info("skip the handleResponse()method and continue to execute the next method");
         return filter;

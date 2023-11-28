@@ -8,8 +8,11 @@ import com.shampo.shampocommon.model.entity.User;
 import com.shampo.shampocommon.service.InnerUserService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ClassName:InnerUserServiceImpl
@@ -24,14 +27,23 @@ import javax.annotation.Resource;
 public class InnerUserServiceImpl implements InnerUserService {
     @Resource
     private UserMapper userMapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Override
     public User getInvokeUser(String accessKey) {
         if(StringUtils.isAnyBlank(accessKey)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        //先查缓存
+        User redisuser = (User) redisTemplate.opsForValue().get(accessKey);
+        if(redisuser!=null){
+            return redisuser;
+        }
         QueryWrapper<User>queryWrapper=new QueryWrapper<>();
         queryWrapper.eq("accessKey",accessKey);
-        return userMapper.selectOne(queryWrapper);
+        User user = userMapper.selectOne(queryWrapper);
+        redisTemplate.opsForValue().set(accessKey,user,86400, TimeUnit.SECONDS);
+        return user;
     }
 }

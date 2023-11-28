@@ -24,6 +24,7 @@ import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,13 +88,10 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
         //配置锁
         RLock lock = redissonClient.getLock(jsonString);
         //该线程唯一标识UUID，用于实现幂等性
-        String uniqueIdentifier =Thread.currentThread().getName();
-        log.info("+++++"+uniqueIdentifier);
+        /*String uniqueIdentifier =Thread.currentThread().getName();
+        log.info("+++++"+uniqueIdentifier);*/
         try {
             if(lock.tryLock(30, 15, TimeUnit.SECONDS)){
-                //Object o = redisTemplate.opsForValue().get(uniqueIdentifier);
-               // if(o==null){
-                    //redisTemplate.opsForValue().set(uniqueIdentifier,"value",30,TimeUnit.SECONDS);
                     log.info(Thread.currentThread().getName()+"获取锁");
                     //后期要加锁或分布式锁进行优化
                     UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
@@ -101,7 +99,6 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
                     updateWrapper.eq("userId", userId);
                     updateWrapper.setSql("leftNum=leftNum-1,totalNum=totalNum+1");
                     this.update(updateWrapper);
-               // }
                 return true;
             }else{
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -184,7 +181,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
                 one.setLeftNum((int)(one.getLeftNum()+lockNum));
                 redisTemplate.opsForSet().add(redisUserInterfaceDTO,one);
                 //设置过期时间:1天
-                //redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
+                redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
                 return true;
             }catch (Exception e){
                 //错误则回滚
@@ -203,7 +200,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
                 this.save(userInterfaceInfo);
                 redisTemplate.opsForSet().add(redisUserInterfaceDTO,userInterfaceInfo);
                 //设置过期时间:1天
-                //redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
+                redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
                 return true;
             }catch (Exception e){
                 //错误则回滚

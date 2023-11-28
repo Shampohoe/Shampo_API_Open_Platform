@@ -18,6 +18,8 @@ import com.shampo.shampocommon.model.entity.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -27,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.shampo.project.constant.UserConstant.ADMIN_ROLE;
@@ -42,10 +45,10 @@ import static com.shampo.project.constant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
-
+    @Autowired
+    private RedisTemplate redisTemplate;
     @Resource
     private UserMapper userMapper;
-
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -93,6 +96,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             user.setAccessKey(accessKey);
             user.setSecretKey(secretKey);
             boolean saveResult = this.save(user);
+            redisTemplate.opsForValue().set(accessKey,user,86400,TimeUnit.SECONDS);//一天过期
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
             }
@@ -124,6 +128,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
+        //更新缓存
+        redisTemplate.opsForValue().set(user.getAccessKey(),user,86400,TimeUnit.SECONDS);//一天过期
         // 3. 记录用户的登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         return user;
@@ -154,7 +160,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         BeanUtils.copyProperties(userUpdateRequest, updateUser);
         updateUser.setUserPassword(encryptPassword);
         boolean result=this.updateById(updateUser);
-
+        if(result!=true){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据库更新失败");
+        }
+        //删除缓存
+        //TODO 删除缓存失败怎么办，（消息队列？订阅mysql binlog？）
+        redisTemplate.opsForValue().getOperations().delete(user.getAccessKey());
         return result;
     }
 
@@ -173,12 +184,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (currentUser == null || currentUser.getId() == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+        // 从缓存查询
         long userId = currentUser.getId();
+        String accessKey = currentUser.getAccessKey();
+        User redisuser = (User) redisTemplate.opsForValue().get(accessKey);
+        if(redisuser!=null){
+            return redisuser;
+        }
+        //从数据库查询,并更新缓存
         currentUser = this.getById(userId);
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
+        redisTemplate.opsForValue().set(accessKey,currentUser,86400,TimeUnit.SECONDS);
         return currentUser;
     }
 
@@ -197,7 +215,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     /**
-     * 用户注销
+     * 用户退出登录
      *
      * @param request
      */

@@ -1,6 +1,7 @@
 package com.shampo.project.model.dto.interfaceinfo;
 
 import lombok.Data;
+import lombok.NonNull;
 
 import java.io.Serializable;
 
