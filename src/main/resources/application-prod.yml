@@ -17,6 +17,21 @@ spring:
     port: 6379
     timeout: 5000
 #    password: 123456
+    rabbitmq:
+      host: 192.168.159.131
+      port: 5672
+      username: root
+      password: lai751026
+      virtual-host: /
+      listener:
+        simple:
+          prefetch: 5
+          acknowledge-mode: auto
+          retry:
+            enabled: true
+            initial-interval: 1000ms
+            multiplier: 1
+            max-attempts: 3
 #  redisson:
  #   config: classpath:classpath:redisson.yml
   #实现分布式锁

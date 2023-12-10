@@ -49,9 +49,8 @@ public class ShampoClient extends CommonApiClient{
                     .body(json)
                     .execute();
         }
-
-        log.info(String.valueOf(httpResponse.getStatus()));
-        log.info("----------------");
+        /*log.info(String.valueOf(httpResponse.getStatus()));
+        log.info("----------------");*/
         String result=httpResponse.body();
         return result;
     }

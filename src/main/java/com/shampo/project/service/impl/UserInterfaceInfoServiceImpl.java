@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,6 +30,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -56,8 +58,12 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
     private UserService userService;
     @Resource
     private InterfaceInfoService interfaceInfoService;
-
+    @Resource
+    private UserInterfaceInfoMapper userInterfaceInfoMapper;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
     private final static Gson gson=new Gson();
+    private final static String  EXCHANGE_NAME = "shampo.direct";
     private int numss=0;
 
     @Override
@@ -87,18 +93,36 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
         String jsonString = gson.toJson(redisUserInterfaceDTO);
         //配置锁
         RLock lock = redissonClient.getLock(jsonString);
-        //该线程唯一标识UUID，用于实现幂等性
-        /*String uniqueIdentifier =Thread.currentThread().getName();
-        log.info("+++++"+uniqueIdentifier);*/
         try {
             if(lock.tryLock(30, 15, TimeUnit.SECONDS)){
-                    log.info(Thread.currentThread().getName()+"获取锁");
-                    //后期要加锁或分布式锁进行优化
-                    UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
-                    updateWrapper.eq("interfaceInfoId", interfaceInfoId);
-                    updateWrapper.eq("userId", userId);
-                    updateWrapper.setSql("leftNum=leftNum-1,totalNum=totalNum+1");
-                    this.update(updateWrapper);
+                UserInterfaceInfo o = (UserInterfaceInfo)redisTemplate.opsForValue().get(redisUserInterfaceDTO);
+                if(o==null){
+                    QueryWrapper<UserInterfaceInfo> queryWrapper=new QueryWrapper<>();
+                    queryWrapper.eq("interfaceInfoId",interfaceInfoId);
+                    queryWrapper.eq("userId",userId);
+                    UserInterfaceInfo result=userInterfaceInfoMapper.selectOne(queryWrapper);
+                    int leftNum = result.getLeftNum();
+                    if(leftNum<=0){
+                        return false;//调用次数不足
+                    }
+                    result.setLeftNum(leftNum-1);
+                    result.setTotalNum(result.getTotalNum()+1);
+                    redisTemplate.opsForValue().set(redisUserInterfaceDTO,result);
+                    //设置过期时间:半天
+                    redisTemplate.expire(redisUserInterfaceDTO, 43200, TimeUnit.SECONDS);
+                }else{
+                    int leftNum = o.getLeftNum();
+                    if(leftNum<=0){
+                        return false;//调用次数不足
+                    }
+                    o.setTotalNum(o.getTotalNum()+1);
+                    o.setLeftNum(leftNum-1);
+                    redisTemplate.opsForValue().set(redisUserInterfaceDTO,o);
+                }
+                // 消息
+                UserInterfaceInfo newo = (UserInterfaceInfo)redisTemplate.opsForValue().get(redisUserInterfaceDTO);
+                // MQ消息发布
+                rabbitTemplate.convertAndSend(EXCHANGE_NAME, "sql", newo);
                 return true;
             }else{
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -107,8 +131,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
             e.printStackTrace();
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         } finally {
-            log.info(Thread.currentThread().getName()+"释放锁");
-                lock.unlock();
+            lock.unlock();
         }
     }
 
@@ -179,7 +202,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
                                 .setSql("leftNum = leftNum + " + lockNum)
                 );
                 one.setLeftNum((int)(one.getLeftNum()+lockNum));
-                redisTemplate.opsForSet().add(redisUserInterfaceDTO,one);
+                redisTemplate.opsForValue().set(redisUserInterfaceDTO,one);
                 //设置过期时间:1天
                 redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
                 return true;
@@ -198,7 +221,7 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
 
                 //先更新数据库再更新缓存
                 this.save(userInterfaceInfo);
-                redisTemplate.opsForSet().add(redisUserInterfaceDTO,userInterfaceInfo);
+                redisTemplate.opsForValue().set(redisUserInterfaceDTO,userInterfaceInfo);
                 //设置过期时间:1天
                 redisTemplate.expire(redisUserInterfaceDTO, 86400, TimeUnit.SECONDS);
                 return true;

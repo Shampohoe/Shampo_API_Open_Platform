@@ -55,16 +55,13 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request= exchange.getRequest();
         String path = INTERFACE_HOST+request.getPath().value();
         String method = request.getMethod().toString();
-        log.info("请求唯一标识"+request.getId());
+       /* log.info("请求唯一标识"+request.getId());
         log.info("请求路径"+path);
         log.info("请求方法"+method);
-        log.info("请求参数"+request.getQueryParams());
+        log.info("请求参数"+request.getQueryParams());*/
         String hostString = request.getLocalAddress().getHostString();
-        log.info("请求来源地址"+hostString);
-        log.info("请求来源地址"+request.getRemoteAddress());
-        //log.info("请求体："+request.getBody());
-
-
+        /*log.info("请求来源地址"+hostString);
+        log.info("请求来源地址"+request.getRemoteAddress());*/
         // 3. （黑白名单）
         ServerHttpResponse response = exchange.getResponse();
         if(!IP_WHITE_LIST.contains(hostString)){
@@ -121,13 +118,9 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             log.info("5");
             return handleNoAuth(response);
         }
-
-
         // 6. 请求转发、调用模拟接口
         // 7. 响应日志
-        log.info("custom global filter");
         Mono<Void> filter=handleResponse(exchange, chain,interfaceInfo.getId(),invokeUser.getId());//异步调用
-        log.info("skip the handleResponse()method and continue to execute the next method");
         return filter;
     }
 
@@ -178,7 +171,6 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                                         try{
                                             innerUserInterfaceInfoService.invokeCount(interfaceInfoId,userId);
                                         }catch(Exception e){
-
                                             log.error("invokeCount error",e);
                                             throw new RuntimeException("接口统计调用失败");
                                         }
@@ -206,7 +198,6 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                 };
                 // 设置 response 对象为装饰过的
                 Mono<Void>result= chain.filter(exchange.mutate().response(decoratedResponse).build());
-                log.info("fffffffffffffffffff");
                 return  result;
             }
             return chain.filter(exchange); // 降级处理返回数据

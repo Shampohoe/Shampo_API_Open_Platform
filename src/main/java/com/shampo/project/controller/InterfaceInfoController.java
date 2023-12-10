@@ -9,6 +9,7 @@ import com.shampo.project.constant.CommonConstant;
 import com.shampo.project.exception.BusinessException;
 import com.shampo.project.model.dto.interfaceinfo.*;
 
+import com.shampo.project.model.dto.userinterfaceinfo.RedisUserInterfaceDTO;
 import com.shampo.project.model.enums.InterfaceInfoStatusEnum;
 import com.shampo.project.service.InterfaceInfoService;
 import com.shampo.project.service.UserInterfaceInfoService;
@@ -367,10 +368,18 @@ public class InterfaceInfoController {
 
         //2.用户调用次数校验
         // TODO 设置缓存，设置读写锁
-        QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper<>();
-        userInterfaceInfoQueryWrapper.eq("userId", loginUser.getId());
-        userInterfaceInfoQueryWrapper.eq("interfaceInfoId", id);
-        UserInterfaceInfo userInterfaceInfo = userInterfaceInfoService.getOne(userInterfaceInfoQueryWrapper);
+        long userId = loginUser.getId();
+        RedisUserInterfaceDTO redisUserInterfaceDTO=new RedisUserInterfaceDTO(userId,id);
+        UserInterfaceInfo userInterfaceInfo = (UserInterfaceInfo) redisTemplate.opsForValue().get(redisUserInterfaceDTO);
+        if(userInterfaceInfo==null){
+            QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper<>();
+            userInterfaceInfoQueryWrapper.eq("userId", userId);
+            userInterfaceInfoQueryWrapper.eq("interfaceInfoId", id);
+            userInterfaceInfo = userInterfaceInfoService.getOne(userInterfaceInfoQueryWrapper);
+            redisTemplate.opsForValue().set(redisUserInterfaceDTO,userInterfaceInfo);
+            //设置过期时间:半天
+            redisTemplate.expire(redisUserInterfaceDTO, 43200, TimeUnit.SECONDS);
+        }
         if (userInterfaceInfo == null){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "调用次数不足！");
         }
@@ -413,7 +422,6 @@ public class InterfaceInfoController {
                         // 如果没有参数，直接调用
                         return method.invoke(apiClient);
                     }
-                    log.info("------------");
                     Gson gson = new Gson();
                     // 构造参数
                     Object parameter= gson.fromJson(userRequestParams, parameterTypes[0]);
